@@ -35,13 +35,17 @@
   #tools label{font-size:13px;display:flex;align-items:center;gap:5px;cursor:pointer;letter-spacing:.05em;}
   #tools .spacer{flex:1;}
 
-  /* ---- scroll stage ---- */
+  /* ---- scroll stage : 青海波(seigaiha) ---- */
   #stage{
-    position:relative;flex:1;overflow:hidden;
-    background:
-      radial-gradient(120% 90% at 50% 0%,rgba(255,255,255,.06),transparent),
-      linear-gradient(var(--green),var(--green2));
-    cursor:grab;
+    position:relative;flex:1;overflow:hidden;cursor:grab;
+    background-color:#22492f;
+    background-image:
+      radial-gradient(circle at 100% 150%, #22492f 24%, #4a8862 25%, #4a8862 28%, #22492f 29%, #22492f 36%, #4a8862 36%, #4a8862 40%, transparent 40%),
+      radial-gradient(circle at 0 150%, #22492f 24%, #4a8862 25%, #4a8862 28%, #22492f 29%, #22492f 36%, #4a8862 36%, #4a8862 40%, transparent 40%),
+      radial-gradient(circle at 50% 100%, #4a8862 10%, #22492f 11%, #22492f 23%, #4a8862 24%, #4a8862 30%, #22492f 31%, #22492f 43%, #4a8862 44%, #4a8862 50%, #22492f 51%, #22492f 63%, #4a8862 64%, #4a8862 71%, transparent 71%),
+      radial-gradient(circle at 100% 50%, #4a8862 5%, #22492f 6%, #22492f 15%, #4a8862 16%, #4a8862 20%, #22492f 21%, #22492f 30%, #4a8862 31%, #4a8862 35%, #22492f 36%, #22492f 45%, #4a8862 46%, #4a8862 49%, transparent 50%),
+      radial-gradient(circle at 0 50%, #4a8862 5%, #22492f 6%, #22492f 15%, #4a8862 16%, #4a8862 20%, #22492f 21%, #22492f 30%, #4a8862 31%, #4a8862 35%, #22492f 36%, #22492f 45%, #4a8862 46%, #4a8862 49%, transparent 50%);
+    background-size:104px 52px;
   }
   #stage.dragging{cursor:grabbing;}
   #stage::before,#stage::after{
@@ -57,20 +61,25 @@
     will-change:transform;
   }
   .rod{
-    flex:none;width:26px;align-self:stretch;position:relative;z-index:3;margin:-12px 0;
-    background:linear-gradient(90deg,#4a3218,#a6763f,#4a3218);border-radius:6px;
-    box-shadow:0 0 10px rgba(0,0,0,.5),inset 0 0 6px rgba(0,0,0,.4);
+    flex:none;width:30px;align-self:stretch;position:relative;z-index:3;margin:-14px 0;
+    border-radius:8px;
+    background:
+      radial-gradient(circle at 3px 3px, rgba(255,255,255,.12) 1px, transparent 1.5px) 0 0/7px 7px,
+      linear-gradient(90deg,#173a25,#3f7a52 45%,#4f8f63 55%,#173a25);
+    box-shadow:0 0 12px rgba(0,0,0,.55),inset 0 0 8px rgba(0,0,0,.45);
   }
   .rod::before,.rod::after{
-    content:"";position:absolute;left:-4px;right:-4px;height:14px;
-    background:linear-gradient(#3a2712,#111);border-radius:50%/60%;
+    content:"";position:absolute;left:6px;width:10px;height:20px;
+    background:linear-gradient(#2a1a0d,#5a3a1c,#2a1a0d);border-radius:3px;
+    box-shadow:0 0 5px rgba(0,0,0,.6);
   }
-  .rod::before{top:-7px;} .rod::after{bottom:-7px;}
+  .rod::before{top:-18px;} .rod::after{bottom:-18px;}
 
   .paper{
-    display:flex;flex-direction:row;align-items:stretch;background:var(--paper);
-    box-shadow:0 0 22px rgba(0,0,0,.45);
-    border-top:2px solid #d7d2c4;border-bottom:2px solid #d7d2c4;
+    display:flex;flex-direction:row;align-items:stretch;
+    background:linear-gradient(90deg,#f8f2cf,#f2e9ba 70%,#ebdfae 100%);
+    box-shadow:0 0 22px rgba(0,0,0,.45),inset 0 0 40px rgba(120,100,40,.12);
+    border-top:3px solid #1c4a2e;border-bottom:3px solid #1c4a2e;
   }
   .col{
     flex:none;width:150px;padding:22px 6px 26px;
