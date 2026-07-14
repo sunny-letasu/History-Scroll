@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>年表絵巻</title>
+<style>
+  :root{
+    --green:#265c3b;
+    --green2:#1c4a2e;
+    --paper:#ffffff;
+    --ink:#111111;
+    --wood:#8a6237;
+    --font:26px;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;margin:0;}
+  body{
+    font-family:"Yu Mincho","YuMincho","Hiragino Mincho ProN","Hiragino Mincho Pro","MS Mincho",serif;
+    color:var(--ink);
+    background:var(--green2);
+    display:flex;flex-direction:column;height:100vh;overflow:hidden;
+  }
+
+  /* ---- toolbar ---- */
+  #tools{
+    flex:none;display:flex;gap:8px;align-items:center;padding:8px 12px;
+    background:linear-gradient(#2f6b46,#245538);border-bottom:1px solid #000;color:#eafff1;
+  }
+  #tools button{
+    font-family:inherit;font-size:14px;padding:7px 14px;border-radius:8px;cursor:pointer;
+    border:1px solid #0a2a19;background:#f3f7f4;color:#173d28;letter-spacing:.08em;
+  }
+  #tools button:active{transform:translateY(1px);}
+  #tools label{font-size:13px;display:flex;align-items:center;gap:5px;cursor:pointer;letter-spacing:.05em;}
+  #tools .spacer{flex:1;}
+
+  /* ---- scroll stage ---- */
+  #stage{
+    position:relative;flex:1;overflow:hidden;
+    background:
+      radial-gradient(120% 90% at 50% 0%,rgba(255,255,255,.06),transparent),
+      linear-gradient(var(--green),var(--green2));
+    cursor:grab;
+  }
+  #stage.dragging{cursor:grabbing;}
+  #stage::before,#stage::after{
+    content:"";position:absolute;top:0;bottom:0;width:60px;z-index:5;pointer-events:none;
+  }
+  #stage::before{left:0;background:linear-gradient(90deg,rgba(0,0,0,.4),transparent);}
+  #stage::after{right:0;background:linear-gradient(270deg,rgba(0,0,0,.4),transparent);}
+
+  #roll{
+    position:absolute;top:30px;bottom:30px;right:0;
+    display:flex;flex-direction:row;align-items:stretch;
+    transition:transform 1.0s cubic-bezier(.22,.61,.36,1);
+    will-change:transform;
+  }
+  .rod{
+    flex:none;width:26px;align-self:stretch;position:relative;z-index:3;margin:-12px 0;
+    background:linear-gradient(90deg,#4a3218,#a6763f,#4a3218);border-radius:6px;
+    box-shadow:0 0 10px rgba(0,0,0,.5),inset 0 0 6px rgba(0,0,0,.4);
+  }
+  .rod::before,.rod::after{
+    content:"";position:absolute;left:-4px;right:-4px;height:14px;
+    background:linear-gradient(#3a2712,#111);border-radius:50%/60%;
+  }
+  .rod::before{top:-7px;} .rod::after{bottom:-7px;}
+
+  .paper{
+    display:flex;flex-direction:row;align-items:stretch;background:var(--paper);
+    box-shadow:0 0 22px rgba(0,0,0,.45);
+    border-top:2px solid #d7d2c4;border-bottom:2px solid #d7d2c4;
+  }
+  .col{
+    flex:none;width:150px;padding:22px 6px 26px;
+    writing-mode:vertical-rl;text-orientation:mixed;
+    display:flex;flex-direction:row;justify-content:flex-start;align-items:flex-start;
+    border-left:1px dashed rgba(0,0,0,.14);position:relative;
+  }
+  .col:first-child{border-left:none;}
+  .col .year,.col .event{
+    font-size:var(--font);color:var(--ink);letter-spacing:.12em;line-height:1.5;white-space:nowrap;
+  }
+  .col .year{font-weight:700;margin-left:10px;}
+  .col.new .year,.col.new .event{animation:fadein .8s ease both;}
+  @keyframes fadein{from{opacity:0;filter:blur(2px);}to{opacity:1;filter:none;}}
+
+  /* per-column controls */
+  .ctrl{
+    position:absolute;top:4px;left:50%;transform:translateX(-50%);
+    display:none;gap:4px;z-index:4;
+  }
+  .col:hover .ctrl{display:flex;}
+  .ctrl button{
+    writing-mode:horizontal-tb;font-family:inherit;font-size:12px;line-height:1;
+    width:22px;height:22px;border-radius:50%;cursor:pointer;border:1px solid #0a2a19;
+    background:#eef3ef;color:#173d28;padding:0;
+  }
+  .ctrl button.del{background:#c14b3d;color:#fff;border-color:#000;}
+
+  .empty{
+    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    color:#cfe9d9;font-size:15px;letter-spacing:.15em;pointer-events:none;z-index:2;text-align:center;padding:0 20px;
+  }
+
+  /* ---- input bar ---- */
+  #bar{flex:none;display:flex;gap:8px;padding:10px 12px;background:#1c4a2e;border-top:1px solid #000;}
+  #bar input{
+    flex:1;font-family:inherit;font-size:16px;padding:10px 12px;border-radius:8px;
+    border:1px solid #000;background:#fff;color:#111;
+  }
+  #bar button{
+    font-family:inherit;font-size:15px;padding:0 20px;border-radius:8px;cursor:pointer;
+    border:1px solid #000;background:linear-gradient(#3a9c63,#2b7d4c);color:#fff;letter-spacing:.1em;white-space:nowrap;
+  }
+  #bar button:active{transform:translateY(1px);}
+  #bar button.cancel{background:#777;}
+
+  .toast{
+    position:absolute;bottom:70px;left:50%;transform:translateX(-50%);
+    background:rgba(0,0,0,.8);color:#eafff1;padding:8px 16px;border-radius:20px;
+    font-size:13px;opacity:0;transition:opacity .3s;z-index:20;pointer-events:none;
+  }
+  .toast.show{opacity:1;}
+</style>
+</head>
+<body>
+  <div id="tools">
+    <button id="play">▶ 再生</button>
+    <button id="toRight" title="古い方へ">⟶ 昔へ</button>
+    <button id="toLeft" title="新しい方へ">今へ ⟵</button>
+    <span class="spacer" style="flex:1"></span>
+    <label><input type="checkbox" id="speakToggle"> 追加を読み上げる</label>
+  </div>
+
+  <div id="stage">
+    <div class="empty" id="empty">「４７２年　○○の乱が起こる」のように書いて追加してください</div>
+    <div id="roll">
+      <div class="rod"></div>
+      <div class="paper" id="paper"></div>
+      <div class="rod"></div>
+    </div>
+    <div class="toast" id="toast"></div>
+  </div>
+
+  <div id="bar">
+    <input id="input" type="text" placeholder="例：７９４年　平安京に遷都する　／　紀元前２２１年　秦が中国を統一する" autocomplete="off">
+    <button id="add">書き加える</button>
+    <button id="cancel" class="cancel" style="display:none">取消</button>
+  </div>
+
+<script>
+const entries = [];   // {id, year, raw}
+let seq = 0;
+let editingId = null;
+
+const stage = document.getElementById('stage');
+const roll  = document.getElementById('roll');
+const paper = document.getElementById('paper');
+const input = document.getElementById('input');
+const empty = document.getElementById('empty');
+const toast = document.getElementById('toast');
+const addBtn = document.getElementById('add');
+const cancelBtn = document.getElementById('cancel');
+
+function toHalf(s){return s.replace(/[０-９]/g,d=>String.fromCharCode(d.charCodeAt(0)-0xFEE0));}
+function parseYear(raw){
+  const s = toHalf(raw);
+  const m = s.match(/(\d{1,4})\s*年/) || s.match(/(\d{1,4})/);
+  if(!m) return null;
+  const y = parseInt(m[1],10);
+  const before = s.slice(0, s.indexOf(m[0]));
+  const isBC = /(紀元前|BC|B\.C\.|前)\s*$/.test(before);
+  return {year: isBC ? -y : y};
+}
+function yearLabel(y){return y<0 ? '紀元前'+Math.abs(y)+'年' : y+'年';}
+function eventText(raw){
+  const s = raw.trim();
+  const m = toHalf(s).match(/^(紀元前|前|BC)?\s*\d{1,4}\s*年?\s*[　\s：:、,]*/);
+  return (m ? s.slice(m[0].length) : s).trim() || '（記載なし）';
+}
+function escapeHtml(s){return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+function showToast(msg){
+  toast.textContent = msg; toast.classList.add('show');
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(()=>toast.classList.remove('show'),1800);
+}
+
+/* ---- render ---- */
+function render(newId){
+  const desc = entries.slice().sort((a,b)=>a.year-b.year).reverse(); // 新→古（左→右）
+  paper.innerHTML = '';
+  desc.forEach(e=>{
+    const col = document.createElement('div');
+    col.className = 'col' + (e.id===newId ? ' new' : '');
+    col.dataset.id = e.id;
+    col.innerHTML =
+      `<div class="ctrl"><button class="edit" title="編集">✎</button><button class="del" title="削除">✕</button></div>`+
+      `<div class="year">${yearLabel(e.year)}</div><div class="event">${escapeHtml(eventText(e.raw))}</div>`;
+    paper.appendChild(col);
+  });
+  empty.style.display = entries.length ? 'none' : 'flex';
+  if(newId!=null) requestAnimationFrame(()=>panTo(maxOffset()));
+  else requestAnimationFrame(()=>panTo(offset));
+}
+
+/* ---- camera ---- */
+let offset = 0;
+function rollWidth(){return roll.scrollWidth;}
+function maxOffset(){return Math.max(0, rollWidth() - stage.clientWidth);}
+function panTo(v){
+  offset = Math.min(maxOffset(), Math.max(0, v));
+  roll.style.transform = `translateX(${offset}px)`;
+}
+
+/* ---- add / edit / delete ---- */
+function submit(){
+  const val = input.value.trim();
+  if(!val) return;
+  const p = parseYear(val);
+  if(!p){ showToast('「◯◯年」の形で年号を入れてください'); return; }
+  if(editingId!=null){
+    const e = entries.find(x=>x.id===editingId);
+    if(e){ e.year=p.year; e.raw=val; }
+    const id=editingId; endEdit();
+    render(id);
+    showToast('修正しました');
+  }else{
+    const e = {id:++seq, year:p.year, raw:val};
+    entries.push(e);
+    input.value='';
+    render(e.id);
+    showToast(yearLabel(e.year)+' を書き加えました');
+    speak(e);
+  }
+}
+function startEdit(id){
+  const e = entries.find(x=>x.id===id); if(!e) return;
+  editingId=id; input.value=e.raw; input.focus();
+  addBtn.textContent='修正する'; cancelBtn.style.display='';
+}
+function endEdit(){
+  editingId=null; input.value=''; addBtn.textContent='書き加える'; cancelBtn.style.display='none';
+}
+function del(id){
+  const i = entries.findIndex(x=>x.id===id);
+  if(i>=0){ entries.splice(i,1); if(editingId===id) endEdit(); render(); showToast('削除しました'); }
+}
+
+paper.addEventListener('click', e=>{
+  const col = e.target.closest('.col'); if(!col) return;
+  const id = parseInt(col.dataset.id,10);
+  if(e.target.classList.contains('edit')) startEdit(id);
+  else if(e.target.classList.contains('del')) del(id);
+});
+
+addBtn.addEventListener('click', submit);
+cancelBtn.addEventListener('click', endEdit);
+input.addEventListener('keydown', e=>{ if(e.key==='Enter') submit(); if(e.key==='Escape') endEdit(); });
+
+/* ---- read aloud ---- */
+function speak(e){
+  const cb = document.getElementById('speakToggle');
+  if(!cb.checked || !window.speechSynthesis) return;
+  const u = new SpeechSynthesisUtterance(yearLabel(e.year)+'、'+eventText(e.raw));
+  u.lang='ja-JP'; u.rate=1;
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(u);
+}
+
+/* ---- auto play ---- */
+let playing=false, rafId=null, dir=1;
+const playBtn = document.getElementById('play');
+function tick(){
+  if(!playing) return;
+  const max = maxOffset();
+  if(max<=0){ stopPlay(); return; }
+  roll.style.transition='none';
+  offset += dir*1.2;                     // ゆっくり流す
+  if(offset>=max){ offset=max; dir=-1; } // 端で折り返し
+  if(offset<=0){ offset=0; dir=1; }
+  roll.style.transform=`translateX(${offset}px)`;
+  rafId=requestAnimationFrame(tick);
+}
+function startPlay(){
+  if(maxOffset()<=0){ showToast('項目が増えると再生できます'); return; }
+  playing=true; dir=-1; playBtn.textContent='⏸ 停止';
+  rafId=requestAnimationFrame(tick);
+}
+function stopPlay(){ playing=false; playBtn.textContent='▶ 再生'; if(rafId)cancelAnimationFrame(rafId); roll.style.transition=''; }
+playBtn.addEventListener('click', ()=> playing?stopPlay():startPlay());
+
+/* ---- manual navigation ---- */
+document.getElementById('toRight').addEventListener('click', ()=>{stopPlay(); roll.style.transition=''; panTo(offset - stage.clientWidth*0.8);});
+document.getElementById('toLeft').addEventListener('click', ()=>{stopPlay(); roll.style.transition=''; panTo(offset + stage.clientWidth*0.8);});
+
+/* drag */
+let dragging=false, startX=0, startOffset=0;
+stage.addEventListener('pointerdown', e=>{
+  if(e.target.closest('.ctrl')) return;
+  stopPlay();
+  dragging=true; startX=e.clientX; startOffset=offset;
+  roll.style.transition='none'; stage.classList.add('dragging');
+  stage.setPointerCapture(e.pointerId);
+});
+stage.addEventListener('pointermove', e=>{ if(dragging) panTo(startOffset-(e.clientX-startX)); });
+function endDrag(){ dragging=false; roll.style.transition=''; stage.classList.remove('dragging'); }
+stage.addEventListener('pointerup', endDrag);
+stage.addEventListener('pointercancel', endDrag);
+/* wheel */
+stage.addEventListener('wheel', e=>{
+  e.preventDefault(); stopPlay();
+  roll.style.transition='none';
+  panTo(offset - (e.deltaY+e.deltaX));
+  clearTimeout(stage._wt); stage._wt=setTimeout(()=>roll.style.transition='',120);
+},{passive:false});
+
+window.addEventListener('resize', ()=>panTo(offset));
+
+/* ---- サンプル（不要なら下の1行を削除） ---- */
+['紀元前２２１年　秦が中国を統一する','１８６年　○○の乱が起こる','４７２年　△△の変が起こる','７９４年　平安京に遷都する','１１９２年　鎌倉幕府がひらかれる']
+  .forEach(s=>{const p=parseYear(s); if(p) entries.push({id:++seq,year:p.year,raw:s});});
+render();
+</script>
+</body>
+</html>
