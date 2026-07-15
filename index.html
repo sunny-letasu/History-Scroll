@@ -97,14 +97,14 @@
 
   /* per-column controls */
   .ctrl{
-    position:absolute;top:4px;left:50%;transform:translateX(-50%);
-    display:none;gap:4px;z-index:4;
+    position:absolute;top:5px;left:50%;transform:translateX(-50%);
+    display:flex;gap:5px;z-index:4;opacity:.55;transition:opacity .2s;
   }
-  .col:hover .ctrl{display:flex;}
+  .col:hover .ctrl{opacity:1;}
   .ctrl button{
     writing-mode:horizontal-tb;font-family:inherit;font-size:12px;line-height:1;
-    width:22px;height:22px;border-radius:50%;cursor:pointer;border:1px solid #0a2a19;
-    background:#eef3ef;color:#173d28;padding:0;
+    width:24px;height:24px;border-radius:50%;cursor:pointer;border:1px solid #0a2a19;
+    background:#eef3ef;color:#173d28;padding:0;box-shadow:0 1px 3px rgba(0,0,0,.3);
   }
   .ctrl button.del{background:#c14b3d;color:#fff;border-color:#000;}
 
@@ -267,7 +267,7 @@ paper.addEventListener('click', e=>{
 
 addBtn.addEventListener('click', submit);
 cancelBtn.addEventListener('click', endEdit);
-input.addEventListener('keydown', e=>{ if(e.key==='Enter') submit(); if(e.key==='Escape') endEdit(); });
+input.addEventListener('keydown', e=>{ if(e.key==='Escape') endEdit(); });
 
 /* ---- read aloud ---- */
 function speak(e){
