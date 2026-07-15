@@ -82,7 +82,7 @@
     border-top:3px solid #1c4a2e;border-bottom:3px solid #1c4a2e;
   }
   .col{
-    flex:none;min-width:52px;padding:22px 12px 26px;
+    flex:none;min-width:52px;padding:22px 12px 44px;
     writing-mode:vertical-rl;text-orientation:mixed;
     display:flex;flex-direction:row;justify-content:flex-start;align-items:stretch;
     border-left:1px dashed rgba(0,0,0,.14);position:relative;
@@ -99,8 +99,8 @@
 
   /* per-column controls */
   .ctrl{
-    position:absolute;top:5px;left:50%;transform:translateX(-50%);
-    display:flex;gap:5px;z-index:4;opacity:.55;transition:opacity .2s;
+    position:absolute;right:6px;bottom:8px;
+    display:flex;flex-direction:row;gap:5px;z-index:4;opacity:.55;transition:opacity .2s;
   }
   .col:hover .ctrl{opacity:1;}
   .ctrl button{
