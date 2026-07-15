@@ -82,16 +82,18 @@
     border-top:3px solid #1c4a2e;border-bottom:3px solid #1c4a2e;
   }
   .col{
-    flex:none;width:150px;padding:22px 6px 26px;
+    flex:none;min-width:52px;padding:22px 12px 26px;
     writing-mode:vertical-rl;text-orientation:mixed;
-    display:flex;flex-direction:row;justify-content:flex-start;align-items:flex-start;
+    display:flex;flex-direction:row;justify-content:flex-start;align-items:stretch;
     border-left:1px dashed rgba(0,0,0,.14);position:relative;
   }
   .col:first-child{border-left:none;}
   .col .year,.col .event{
-    font-size:var(--font);color:var(--ink);letter-spacing:.12em;line-height:1.5;white-space:nowrap;
+    font-size:var(--font);color:var(--ink);letter-spacing:.12em;line-height:1.6;
   }
-  .col .year{font-weight:700;margin-left:10px;}
+  .col .year{font-weight:700;margin-left:12px;white-space:nowrap;}
+  .col .event{white-space:normal;}   /* 紙の高さを超えたら左へ改行 */
+  .col.reading{background:linear-gradient(90deg,rgba(255,214,90,.32),rgba(255,214,90,.12));box-shadow:inset 0 0 0 2px rgba(198,150,20,.5);}
   .col.new .year,.col.new .event{animation:fadein .8s ease both;}
   @keyframes fadein{from{opacity:0;filter:blur(2px);}to{opacity:1;filter:none;}}
 
@@ -279,26 +281,57 @@ function speak(e){
   window.speechSynthesis.speak(u);
 }
 
-/* ---- auto play ---- */
-let playing=false, rafId=null, dir=1;
+/* ---- 再生：右（古い方）から順に読み上げ＋カメラ追従 ---- */
+let playing=false, narrIndex=0, narrOrder=[], guardTimer=null;
 const playBtn = document.getElementById('play');
-function tick(){
-  if(!playing) return;
-  const max = maxOffset();
-  if(max<=0){ stopPlay(); return; }
-  roll.style.transition='none';
-  offset += dir*1.2;                     // ゆっくり流す
-  if(offset>=max){ offset=max; dir=-1; } // 端で折り返し
-  if(offset<=0){ offset=0; dir=1; }
-  roll.style.transform=`translateX(${offset}px)`;
-  rafId=requestAnimationFrame(tick);
+
+function colById(id){return paper.querySelector(`.col[data-id="${id}"]`);}
+function clearReading(){paper.querySelectorAll('.col.reading').forEach(c=>c.classList.remove('reading'));}
+
+/* あるコラムを画面中央に寄せる */
+function focusColumn(id){
+  const el = colById(id); if(!el) return;
+  clearReading(); el.classList.add('reading');
+  const target = rollWidth() - stage.clientWidth/2 - el.offsetLeft - el.offsetWidth/2;
+  roll.style.transition = 'transform .6s ease';
+  panTo(target);
 }
+
 function startPlay(){
-  if(maxOffset()<=0){ showToast('項目が増えると再生できます'); return; }
-  playing=true; dir=-1; playBtn.textContent='⏸ 停止';
-  rafId=requestAnimationFrame(tick);
+  if(!entries.length){ showToast('項目がありません'); return; }
+  narrOrder = entries.slice().sort((a,b)=>a.year-b.year); // 古い→新しい（右から）
+  playing=true; narrIndex=0; playBtn.textContent='⏸ 停止';
+  narrateStep();
 }
-function stopPlay(){ playing=false; playBtn.textContent='▶ 再生'; if(rafId)cancelAnimationFrame(rafId); roll.style.transition=''; }
+function narrateStep(){
+  if(!playing) return;
+  if(narrIndex>=narrOrder.length){ showToast('読み終わりました'); stopPlay(); return; }
+  const e = narrOrder[narrIndex];
+  focusColumn(e.id);
+  const text = yearLabel(e.year)+'、'+eventText(e.raw);
+  const next = ()=>{ if(!playing) return; narrIndex++; setTimeout(narrateStep, 350); };
+  // カメラ移動を待ってから読み上げ
+  setTimeout(()=>{
+    if(!playing) return;
+    if(window.speechSynthesis){
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang='ja-JP'; u.rate=1;
+      let done=false; const go=()=>{ if(done) return; done=true; clearTimeout(guardTimer); next(); };
+      u.onend=go; u.onerror=go;
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(u);
+      // 音声が無い環境でも止まらないよう保険（文字数に応じた最大待ち）
+      guardTimer = setTimeout(go, 1500 + text.length*130);
+    }else{
+      guardTimer = setTimeout(next, 1200 + text.length*130);
+    }
+  }, 650);
+}
+function stopPlay(){
+  playing=false; playBtn.textContent='▶ 再生';
+  if(window.speechSynthesis) window.speechSynthesis.cancel();
+  clearTimeout(guardTimer); clearReading(); roll.style.transition='';
+}
 playBtn.addEventListener('click', ()=> playing?stopPlay():startPlay());
 
 /* ---- manual navigation ---- */
@@ -329,7 +362,7 @@ stage.addEventListener('wheel', e=>{
 window.addEventListener('resize', ()=>panTo(offset));
 
 /* ---- サンプル（不要なら下の1行を削除） ---- */
-['紀元前２２１年　秦が中国を統一する','１８６年　○○の乱が起こる','４７２年　△△の変が起こる','７９４年　平安京に遷都する','１１９２年　鎌倉幕府がひらかれる']
+['紀元前２２１年　秦が中国を統一する','１８６年　○○の乱が起こる','４７２年　△△の変が起こる','７９４年　平安京に遷都し、律令国家のもとで新たな都づくりがすすめられていった','１１９２年　鎌倉幕府がひらかれる']
   .forEach(s=>{const p=parseYear(s); if(p) entries.push({id:++seq,year:p.year,raw:s});});
 render();
 </script>
